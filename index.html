@@ -1,0 +1,1729 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aktieagenten – Avancerad Aktieanalys</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;500;700&family=Inter:wght@300;400;500&display=swap');
+
+:root {
+  --bg: #060810;
+  --surface: #0d1017;
+  --surface2: #131720;
+  --surface3: #1a1f2e;
+  --border: #1e2535;
+  --border2: #252d40;
+  --accent: #4fffb0;
+  --accent-dim: rgba(79,255,176,0.12);
+  --accent2: #ff6b35;
+  --accent3: #7b61ff;
+  --warn: #ffd166;
+  --text: #e2e8f5;
+  --muted: #4a5568;
+  --muted2: #6b7a99;
+  --up: #4fffb0;
+  --down: #ff4d6d;
+  --chart-grid: rgba(255,255,255,0.04);
+  --glow: 0 0 40px rgba(79,255,176,0.08);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', sans-serif;
+  font-weight: 300;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 60% 40% at 10% 20%, rgba(79,255,176,0.04) 0%, transparent 70%),
+    radial-gradient(ellipse 50% 60% at 90% 80%, rgba(123,97,255,0.04) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ---- Layout ---- */
+.app-wrapper {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  min-height: 100vh;
+  position: relative;
+  z-index: 1;
+}
+
+/* ---- Sidebar ---- */
+.sidebar {
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+.sidebar-logo {
+  padding: 24px 20px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.logo-mark {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: 1.25rem;
+  letter-spacing: -0.5px;
+  line-height: 1;
+}
+
+.logo-mark span { color: var(--accent); }
+
+.logo-sub {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.55rem;
+  color: var(--muted);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  margin-top: 5px;
+}
+
+.nav-section {
+  padding: 16px 12px 8px;
+}
+
+.nav-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.55rem;
+  color: var(--muted);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  padding: 0 8px;
+  margin-bottom: 6px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-size: 0.85rem;
+  color: var(--muted2);
+  font-weight: 400;
+  border: 1px solid transparent;
+}
+
+.nav-item:hover { background: var(--surface2); color: var(--text); }
+
+.nav-item.active {
+  background: var(--accent-dim);
+  color: var(--accent);
+  border-color: rgba(79,255,176,0.15);
+}
+
+.nav-icon { font-size: 1rem; width: 20px; text-align: center; }
+
+.sidebar-portfolio {
+  padding: 16px 20px;
+  border-top: 1px solid var(--border);
+  margin-top: auto;
+}
+
+.portfolio-mini-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.55rem;
+  color: var(--muted);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+.portfolio-mini-val {
+  font-family: 'Syne', sans-serif;
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+
+.portfolio-mini-chg {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  margin-top: 2px;
+}
+
+/* ---- Main ---- */
+.main {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.topbar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.search-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  max-width: 520px;
+}
+
+.search-box {
+  flex: 1;
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  color: var(--text);
+  font-family: 'Inter', sans-serif;
+  font-size: 0.88rem;
+  padding: 10px 14px;
+  border-radius: 6px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.search-box::placeholder { color: var(--muted); }
+.search-box:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(79,255,176,0.08); }
+
+.btn {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 10px 18px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.btn:active { transform: scale(0.97); }
+.btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.btn-primary { background: var(--accent); color: #000; font-weight: 700; }
+.btn-primary:hover:not(:disabled) { background: #6fffbe; }
+
+.btn-ghost {
+  background: var(--surface3);
+  color: var(--text);
+  border: 1px solid var(--border2);
+}
+.btn-ghost:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.date-chip {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.62rem;
+  color: var(--muted);
+  letter-spacing: 0.08em;
+  padding: 6px 12px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+}
+
+.live-indicator {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.6rem;
+  color: var(--accent);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.live-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+
+/* ---- Page content ---- */
+.page { display: none; padding: 28px; }
+.page.active { display: block; }
+
+/* ---- Stats row ---- */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 28px;
+}
+
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 18px 20px;
+  transition: border-color 0.2s;
+}
+
+.stat-card:hover { border-color: var(--border2); }
+
+.stat-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.6rem;
+  color: var(--muted);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.stat-value {
+  font-family: 'Syne', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.stat-sub {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem;
+  color: var(--muted2);
+  margin-top: 4px;
+}
+
+.stat-sub.up { color: var(--up); }
+.stat-sub.down { color: var(--down); }
+
+/* ---- Filter row ---- */
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.pills {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.pill {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--border2);
+  background: transparent;
+  color: var(--muted2);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.pill:hover, .pill.active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-dim);
+}
+
+.section-header {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.62rem;
+  color: var(--muted);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* ---- Result Cards ---- */
+.results-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  gap: 16px;
+}
+
+.result-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 20px;
+  animation: fadeUp 0.35s ease forwards;
+  opacity: 0;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  cursor: pointer;
+}
+
+.result-card:hover {
+  border-color: var(--border2);
+  box-shadow: var(--glow);
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 14px;
+}
+
+.stock-name {
+  font-family: 'Syne', sans-serif;
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.stock-meta {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.62rem;
+  color: var(--muted);
+  margin-top: 3px;
+  letter-spacing: 0.06em;
+}
+
+.badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  padding: 5px 12px;
+  border-radius: 20px;
+}
+
+.badge-buy { background: rgba(79,255,176,0.12); color: var(--up); border: 1px solid rgba(79,255,176,0.25); }
+.badge-hold { background: rgba(255,209,102,0.1); color: var(--warn); border: 1px solid rgba(255,209,102,0.25); }
+.badge-sell { background: rgba(255,77,109,0.1); color: var(--down); border: 1px solid rgba(255,77,109,0.25); }
+
+/* Confidence bar */
+.confidence-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.confidence-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.58rem;
+  color: var(--muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.confidence-bar {
+  flex: 1;
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.confidence-fill {
+  height: 100%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--accent3), var(--accent));
+  transition: width 0.6s ease;
+}
+
+.confidence-val {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem;
+  color: var(--accent);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.card-rationale {
+  font-size: 0.85rem;
+  line-height: 1.7;
+  color: #8899bb;
+  margin-bottom: 14px;
+}
+
+/* Catalysts */
+.catalysts {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.catalyst-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.58rem;
+  padding: 3px 9px;
+  border-radius: 4px;
+  background: var(--surface3);
+  color: var(--muted2);
+  border: 1px solid var(--border2);
+  letter-spacing: 0.04em;
+}
+
+.card-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  border-top: 1px solid var(--border);
+  padding-top: 14px;
+  margin-bottom: 12px;
+}
+
+.metric { display: flex; flex-direction: column; gap: 2px; }
+
+.metric-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.55rem;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.metric-val {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.metric-val.up { color: var(--up); }
+.metric-val.down { color: var(--down); }
+
+.card-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.card-btn {
+  flex: 1;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 8px;
+  border-radius: 5px;
+  border: 1px solid var(--border2);
+  background: transparent;
+  color: var(--muted2);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.card-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+.card-btn.added { border-color: var(--up); color: var(--up); background: rgba(79,255,176,0.08); }
+
+/* ---- Loading ---- */
+.loading {
+  display: none;
+  text-align: center;
+  padding: 60px 20px;
+}
+.loading.active { display: block; }
+
+.spinner-ring {
+  width: 40px; height: 40px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  margin: 0 auto 20px;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.loading-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+}
+
+.loading-step {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  color: var(--accent);
+  margin-top: 10px;
+  min-height: 20px;
+  animation: blink 0.5s step-end infinite;
+}
+
+@keyframes blink { 50% { opacity: 0.4; } }
+
+/* ---- Error ---- */
+.error-box {
+  background: rgba(255,77,109,0.06);
+  border: 1px solid rgba(255,77,109,0.2);
+  color: #ff8099;
+  padding: 14px 18px;
+  font-size: 0.85rem;
+  border-radius: 8px;
+  display: none;
+  margin-bottom: 20px;
+}
+.error-box.active { display: block; }
+
+/* ---- Empty ---- */
+.empty {
+  text-align: center;
+  padding: 64px 20px;
+  color: var(--muted);
+}
+
+.empty-icon { font-size: 3rem; margin-bottom: 16px; opacity: 0.3; }
+.empty-text { font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; letter-spacing: 0.06em; line-height: 2; }
+
+/* ---- Chart container ---- */
+.chart-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.chart-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.chart-sub {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.6rem;
+  color: var(--muted);
+  letter-spacing: 0.08em;
+  margin-top: 2px;
+}
+
+canvas { max-width: 100%; }
+
+/* ---- Portfolio ---- */
+.portfolio-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.portfolio-total {
+  font-family: 'Syne', sans-serif;
+  font-size: 2.4rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.portfolio-chg {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8rem;
+  margin-top: 6px;
+}
+
+.portfolio-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.portfolio-table th {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.58rem;
+  color: var(--muted);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-align: left;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.portfolio-table td {
+  padding: 14px;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.88rem;
+}
+
+.portfolio-table tr:hover td { background: var(--surface2); }
+
+.p-name { font-family: 'Syne', sans-serif; font-weight: 600; font-size: 0.9rem; }
+.p-ticker { font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; color: var(--muted2); margin-top: 2px; }
+.p-mono { font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; }
+.p-up { color: var(--up); }
+.p-down { color: var(--down); }
+
+.remove-btn {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.7rem;
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.remove-btn:hover { border-color: var(--down); color: var(--down); }
+
+.add-holding-form {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 20px;
+  margin-top: 20px;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.form-group { display: flex; flex-direction: column; gap: 6px; }
+
+.form-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.58rem;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.form-input {
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  color: var(--text);
+  font-family: 'Inter', sans-serif;
+  font-size: 0.88rem;
+  padding: 9px 12px;
+  border-radius: 6px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.form-input:focus { border-color: var(--accent); }
+.form-input::placeholder { color: var(--muted); }
+
+/* ---- Alerts ---- */
+.alerts-grid {
+  display: grid;
+  gap: 14px;
+}
+
+.alert-item {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.alert-info { flex: 1; }
+
+.alert-title {
+  font-family: 'Syne', sans-serif;
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin-bottom: 3px;
+}
+
+.alert-desc {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.63rem;
+  color: var(--muted2);
+}
+
+.alert-status {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.6rem;
+  padding: 4px 10px;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.alert-status.on { background: rgba(79,255,176,0.1); color: var(--up); border: 1px solid rgba(79,255,176,0.2); }
+.alert-status.off { background: var(--surface2); color: var(--muted); border: 1px solid var(--border); }
+
+.toggle-btn {
+  background: none;
+  border: 1px solid var(--border2);
+  color: var(--muted2);
+  padding: 7px 14px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.62rem;
+  transition: all 0.15s;
+}
+
+.toggle-btn.on { border-color: var(--down); color: var(--down); }
+.toggle-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+.alert-form {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 20px;
+  margin-top: 16px;
+}
+
+.alert-form-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+
+.alert-form-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr auto;
+  gap: 10px;
+  align-items: end;
+}
+
+/* Disclaimer */
+.disclaimer {
+  font-size: 0.7rem;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  padding: 14px 18px;
+  border-left: 2px solid var(--accent2);
+  margin-top: 32px;
+  line-height: 1.7;
+  border-radius: 0 8px 8px 0;
+}
+
+.disclaimer strong { color: var(--accent2); font-weight: 500; }
+
+/* ---- Scrollbar ---- */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+/* ---- Responsive ---- */
+@media (max-width: 768px) {
+  .app-wrapper { grid-template-columns: 1fr; }
+  .sidebar { display: none; }
+  .stats-row { grid-template-columns: repeat(2, 1fr); }
+  .results-grid { grid-template-columns: 1fr; }
+  .form-row, .alert-form-row { grid-template-columns: 1fr 1fr; }
+  .portfolio-table th:nth-child(3), .portfolio-table td:nth-child(3) { display: none; }
+}
+
+/* Toast */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: var(--surface3);
+  border: 1px solid var(--border2);
+  color: var(--text);
+  padding: 12px 18px;
+  border-radius: 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: all 0.25s;
+  z-index: 100;
+  max-width: 300px;
+}
+
+.toast.show { opacity: 1; transform: translateY(0); }
+.toast.success { border-color: rgba(79,255,176,0.3); color: var(--accent); }
+.toast.error { border-color: rgba(255,77,109,0.3); color: var(--down); }
+
+/* Sparkline container */
+.sparkline-wrap {
+  height: 36px;
+  margin-bottom: 8px;
+}
+</style>
+</head>
+<body>
+
+<div class="app-wrapper">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-mark">Aktie<span>agenten</span></div>
+      <div class="logo-sub">Avancerad aktieanalys</div>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-label">Navigering</div>
+      <div class="nav-item active" onclick="showPage('analyse')">
+        <span class="nav-icon">📊</span> Analys
+      </div>
+      <div class="nav-item" onclick="showPage('portfolio')">
+        <span class="nav-icon">💼</span> Portfölj
+      </div>
+      <div class="nav-item" onclick="showPage('alerts')">
+        <span class="nav-icon">🔔</span> Bevakningar
+      </div>
+    </div>
+
+    <div class="sidebar-portfolio">
+      <div class="portfolio-mini-label">Portföljvärde</div>
+      <div class="portfolio-mini-val" id="sidebar-portfolio-val">— kr</div>
+      <div class="portfolio-mini-chg" id="sidebar-portfolio-chg" style="color:var(--muted)">Inga innehav</div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main">
+    <div class="topbar">
+      <div class="search-wrap">
+        <input type="text" class="search-box" id="search-input" placeholder="Sök bolag – t.ex. Ericsson, Volvo…" />
+        <button class="btn btn-primary" id="search-btn" onclick="searchStock()">Analysera</button>
+        <button class="btn btn-ghost" id="daily-btn" onclick="getDailyTips()">Dagstips</button>
+      </div>
+      <div class="topbar-right">
+        <div class="date-chip" id="date-display"></div>
+        <div class="live-indicator"><span class="live-dot"></span> Live</div>
+      </div>
+    </div>
+
+    <!-- ANALYSE PAGE -->
+    <div class="page active" id="page-analyse">
+
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-label">Analyser idag</div>
+          <div class="stat-value" id="stat-count">0</div>
+          <div class="stat-sub">Bolag analyserade</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Köprekar</div>
+          <div class="stat-value up" id="stat-buy" style="color:var(--up)">0</div>
+          <div class="stat-sub up">Stark signal</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Genomsnittlig konfidens</div>
+          <div class="stat-value" id="stat-conf">—</div>
+          <div class="stat-sub">AI-konfidens</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Bevakar</div>
+          <div class="stat-value" id="stat-watch">0</div>
+          <div class="stat-sub">I portfölj</div>
+        </div>
+      </div>
+
+      <div class="chart-section" id="chart-section" style="display:none">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title" id="chart-title">Sentimentöversikt</div>
+            <div class="chart-sub">Baserat på senaste analyserna</div>
+          </div>
+          <div class="pills">
+            <button class="pill active" onclick="switchChart('sentiment', this)">Sentiment</button>
+            <button class="pill" onclick="switchChart('confidence', this)">Konfidens</button>
+            <button class="pill" onclick="switchChart('risk', this)">Risk</button>
+          </div>
+        </div>
+        <canvas id="mainChart" height="140"></canvas>
+      </div>
+
+      <div class="toolbar">
+        <div class="pills">
+          <button class="pill active" onclick="filterResults('alla', this)">Alla</button>
+          <button class="pill" onclick="filterResults('köp', this)">Köp</button>
+          <button class="pill" onclick="filterResults('behåll', this)">Behåll</button>
+          <button class="pill" onclick="filterResults('sälj', this)">Sälj</button>
+        </div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:0.65rem;color:var(--muted)" id="result-count"></div>
+      </div>
+
+      <div class="section-header">
+        <span>Rekommendationer</span>
+        <span id="last-updated"></span>
+      </div>
+
+      <div class="error-box" id="error-box"></div>
+
+      <div class="loading" id="loading">
+        <div class="spinner-ring"></div>
+        <div class="loading-label">Analyserar marknaden...</div>
+        <div class="loading-step" id="loading-step"></div>
+      </div>
+
+      <div id="results-container">
+        <div class="empty">
+          <div class="empty-icon">📈</div>
+          <div class="empty-text">
+            Tryck på "Dagstips" för att hämta dagens köprekommendationer<br>
+            eller sök på ett specifikt bolag för djupanalys
+          </div>
+        </div>
+      </div>
+
+      <div class="disclaimer">
+        <strong>⚠ Riskvarning:</strong> Aktiehandel innebär risk för förlust. Denna agent tillhandahåller information och analyser baserade på tillgängliga nyheter och rapporter – det är inte personlig finansiell rådgivning. Konsultera en auktoriserad finansiell rådgivare innan du fattar investeringsbeslut.
+      </div>
+    </div>
+
+    <!-- PORTFOLIO PAGE -->
+    <div class="page" id="page-portfolio">
+      <div class="portfolio-header">
+        <div>
+          <div class="stat-label">Total portföljvärdering</div>
+          <div class="portfolio-total" id="p-total">0 kr</div>
+          <div class="portfolio-chg" id="p-chg" style="color:var(--muted)">Inga innehav ännu</div>
+        </div>
+        <button class="btn btn-primary" onclick="analysePortfolio()">Analysera portfölj</button>
+      </div>
+
+      <div class="section-header">Innehav</div>
+
+      <div id="portfolio-empty" class="empty" style="padding:40px 0">
+        <div class="empty-icon">💼</div>
+        <div class="empty-text">Din portfölj är tom.<br>Lägg till aktier från analysfliken eller nedan.</div>
+      </div>
+
+      <table class="portfolio-table" id="portfolio-table" style="display:none">
+        <thead>
+          <tr>
+            <th>Bolag</th>
+            <th>Antal</th>
+            <th>Köpkurs</th>
+            <th>Nuvärde</th>
+            <th>Förändring</th>
+            <th>Rekar</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="portfolio-body"></tbody>
+      </table>
+
+      <div class="add-holding-form">
+        <div class="section-header" style="margin-bottom:14px">Lägg till innehav</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Bolagsnamn</label>
+            <input class="form-input" id="p-name" placeholder="T.ex. Volvo B" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Antal aktier</label>
+            <input class="form-input" id="p-qty" type="number" placeholder="100" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Köpkurs (kr)</label>
+            <input class="form-input" id="p-price" type="number" placeholder="245.50" />
+          </div>
+          <button class="btn btn-primary" onclick="addHolding()">+ Lägg till</button>
+        </div>
+      </div>
+
+      <div class="chart-section" style="margin-top:24px" id="portfolio-chart-section">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Portföljfördelning</div>
+            <div class="chart-sub">Värdefördelning per innehav</div>
+          </div>
+        </div>
+        <canvas id="portfolioChart" height="180"></canvas>
+      </div>
+    </div>
+
+    <!-- ALERTS PAGE -->
+    <div class="page" id="page-alerts">
+      <div class="section-header">
+        <span>Aktiva bevakningar</span>
+        <span id="alerts-count">0 aktiva</span>
+      </div>
+
+      <div class="alerts-grid" id="alerts-list">
+        <div class="empty" style="padding:40px 0">
+          <div class="empty-icon">🔔</div>
+          <div class="empty-text">Inga bevakningar satta.<br>Skapa en bevakning nedan.</div>
+        </div>
+      </div>
+
+      <div class="alert-form" style="margin-top:24px">
+        <div class="alert-form-title">+ Skapa ny bevakning</div>
+        <div class="alert-form-row">
+          <div class="form-group">
+            <label class="form-label">Bolag</label>
+            <input class="form-input" id="al-name" placeholder="T.ex. Ericsson" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Typ</label>
+            <select class="form-input" id="al-type">
+              <option value="KÖP">Köpsignal</option>
+              <option value="SÄLJ">Säljsignal</option>
+              <option value="ALLA">Alla signaler</option>
+              <option value="RAPPORT">Rapport</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">E-post (valfritt)</label>
+            <input class="form-input" id="al-email" placeholder="din@email.com" type="email" />
+          </div>
+          <button class="btn btn-primary" onclick="addAlert()">Skapa</button>
+        </div>
+      </div>
+
+      <div class="disclaimer" style="margin-top:24px">
+        <strong>📧 E-postbevakningar:</strong> Ange din e-post för att simulera e-postavisering när en aktie du bevakar får en ny rekommendation. I en produktionsmiljö kräver detta en backend-tjänst.
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ========================
+// STATE
+// ========================
+let allResults = [];
+let portfolio = JSON.parse(localStorage.getItem('portfolio') || '[]');
+let alertsList = JSON.parse(localStorage.getItem('alerts') || '[]');
+let currentFilter = 'alla';
+let mainChartInstance = null;
+let portfolioChartInstance = null;
+let currentChartType = 'sentiment';
+
+// ========================
+// INIT
+// ========================
+document.getElementById('date-display').textContent = new Date().toLocaleDateString('sv-SE', {
+  weekday: 'short', year: 'numeric', month: 'short', day: 'numeric'
+});
+
+document.getElementById('search-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') searchStock();
+});
+
+renderPortfolio();
+renderAlerts();
+
+// ========================
+// NAVIGATION
+// ========================
+function showPage(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => {
+    if (n.textContent.trim().toLowerCase().includes(
+      page === 'analyse' ? 'analys' : page === 'portfolio' ? 'portfölj' : 'bevakning'
+    )) n.classList.add('active');
+  });
+}
+
+// ========================
+// CLAUDE API
+// ========================
+const LOADING_STEPS = [
+  '→ Söker nyheter på Börsvärlden...',
+  '→ Hämtar analytikerrekommendationer...',
+  '→ Läser bolagsrapporter...',
+  '→ Analyserar kursmönster...',
+  '→ Söker i Dagens Industri...',
+  '→ Beräknar konfidenspoäng...',
+  '→ Sammanställer analys...'
+];
+
+async function callClaude(prompt) {
+  const response = await fetch("/api/claude", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "claude-sonnet-4-6",
+      max_tokens: 2000,
+      tools: [{ type: "web_search_20250305", name: "web_search" }],
+      system: `Du är en erfaren svensk aktieanalytiker som specialiserar dig på kortsiktig handel (dagar till veckor) på Stockholmsbörsen.
+
+Du analyserar aktier med hjälp av:
+- Nyheter och analyser från Di (Dagens Industri), Börsvärlden, Placera
+- Analytikernas rekommendationer och riktkurser
+- Bolagsrapporter, prognoser och vinstrevideringar
+- Teknisk analys och kursutveckling
+- Insiderhandel och institutionella flöden
+
+Svara ALLTID med ett JSON-objekt i EXAKT detta format (ingen annan text, inga kommentarer):
+{
+  "stocks": [
+    {
+      "name": "Bolagsnamn AB",
+      "ticker": "TICKER",
+      "recommendation": "KÖP" | "BEHÅLL" | "SÄLJ",
+      "confidence": 85,
+      "rationale": "2-3 meningar om varför. Nämn specifika nyheter, rapporter eller analytiker.",
+      "catalysts": ["Katalysator 1", "Katalysator 2"],
+      "targetPrice": "XXX kr",
+      "timeHorizon": "X–X veckor",
+      "riskLevel": "Låg" | "Medel" | "Hög",
+      "upside": "+XX%",
+      "sources": ["Källa 1", "Källa 2"]
+    }
+  ]
+}
+
+Confidence är ett tal 0–100 som visar hur säker du är. Var ärlig: om datan är oklar, ge lägre konfidens.`,
+      messages: [{ role: "user", content: prompt }]
+    })
+  });
+
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  const data = await response.json();
+  if (data.error) throw new Error(data.error.message);
+  const text = data.content.filter(b => b.type === 'text').map(b => b.text).join('');
+  const clean = text.replace(/```json|```/g, '').trim();
+  const start = clean.indexOf('{');
+  const end = clean.lastIndexOf('}');
+  if (start === -1 || end === -1) throw new Error('Ogiltigt JSON-svar');
+  return JSON.parse(clean.slice(start, end + 1));
+}
+
+// ========================
+// LOADING
+// ========================
+let stepInterval = null;
+
+function showLoading(show) {
+  document.getElementById('loading').classList.toggle('active', show);
+  document.getElementById('search-btn').disabled = show;
+  document.getElementById('daily-btn').disabled = show;
+
+  if (show) {
+    document.getElementById('results-container').innerHTML = '';
+    document.getElementById('chart-section').style.display = 'none';
+    let i = 0;
+    const step = document.getElementById('loading-step');
+    step.textContent = LOADING_STEPS[0];
+    stepInterval = setInterval(() => {
+      i = (i + 1) % LOADING_STEPS.length;
+      step.textContent = LOADING_STEPS[i];
+    }, 1100);
+  } else {
+    if (stepInterval) clearInterval(stepInterval);
+  }
+}
+
+function showError(msg) {
+  const el = document.getElementById('error-box');
+  el.textContent = '⚠ ' + msg;
+  el.classList.add('active');
+}
+
+function hideError() {
+  document.getElementById('error-box').classList.remove('active');
+}
+
+// ========================
+// TOAST
+// ========================
+function showToast(msg, type = 'default') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + type;
+  setTimeout(() => { t.classList.remove('show'); }, 2800);
+}
+
+// ========================
+// RENDER RESULTS
+// ========================
+function renderResults(stocks) {
+  allResults = stocks;
+  updateStats();
+  updateChart();
+  applyFilter(currentFilter);
+  document.getElementById('last-updated').textContent =
+    'Uppdaterad ' + new Date().toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });
+  document.getElementById('chart-section').style.display = 'block';
+}
+
+function updateStats() {
+  const buys = allResults.filter(s => s.recommendation === 'KÖP').length;
+  const avgConf = allResults.length
+    ? Math.round(allResults.reduce((a, b) => a + (b.confidence || 75), 0) / allResults.length)
+    : 0;
+
+  document.getElementById('stat-count').textContent = allResults.length;
+  document.getElementById('stat-buy').textContent = buys;
+  document.getElementById('stat-conf').textContent = allResults.length ? avgConf + '%' : '—';
+  document.getElementById('stat-watch').textContent = portfolio.length;
+}
+
+function updateChart() {
+  const ctx = document.getElementById('mainChart').getContext('2d');
+  if (mainChartInstance) mainChartInstance.destroy();
+
+  if (currentChartType === 'sentiment') {
+    const buys = allResults.filter(s => s.recommendation === 'KÖP').length;
+    const holds = allResults.filter(s => s.recommendation === 'BEHÅLL').length;
+    const sells = allResults.filter(s => s.recommendation === 'SÄLJ').length;
+    document.getElementById('chart-title').textContent = 'Sentimentöversikt';
+
+    mainChartInstance = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Köp', 'Behåll', 'Sälj'],
+        datasets: [{
+          data: [buys, holds, sells],
+          backgroundColor: ['rgba(79,255,176,0.8)', 'rgba(255,209,102,0.7)', 'rgba(255,77,109,0.7)'],
+          borderColor: ['#4fffb0', '#ffd166', '#ff4d6d'],
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { labels: { color: '#8899bb', font: { family: 'JetBrains Mono', size: 11 } } }
+        }
+      }
+    });
+  } else if (currentChartType === 'confidence') {
+    document.getElementById('chart-title').textContent = 'Konfidensfördelning';
+    mainChartInstance = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: allResults.map(s => s.ticker || s.name.split(' ')[0]),
+        datasets: [{
+          label: 'Konfidens %',
+          data: allResults.map(s => s.confidence || 75),
+          backgroundColor: allResults.map(s =>
+            s.recommendation === 'KÖP' ? 'rgba(79,255,176,0.7)' :
+            s.recommendation === 'SÄLJ' ? 'rgba(255,77,109,0.7)' : 'rgba(255,209,102,0.6)'
+          ),
+          borderRadius: 4
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          y: { beginAtZero: true, max: 100, grid: { color: '#1e2535' }, ticks: { color: '#4a5568', font: { family: 'JetBrains Mono', size: 10 } } },
+          x: { grid: { display: false }, ticks: { color: '#4a5568', font: { family: 'JetBrains Mono', size: 10 } } }
+        },
+        plugins: { legend: { display: false } }
+      }
+    });
+  } else {
+    document.getElementById('chart-title').textContent = 'Riskprofil';
+    const riskMap = { 'Låg': 1, 'Medel': 2, 'Hög': 3 };
+    mainChartInstance = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: allResults.map(s => s.ticker || s.name.split(' ')[0]),
+        datasets: [{
+          label: 'Risknivå (1=Låg, 3=Hög)',
+          data: allResults.map(s => riskMap[s.riskLevel] || 2),
+          backgroundColor: allResults.map(s =>
+            s.riskLevel === 'Låg' ? 'rgba(79,255,176,0.7)' :
+            s.riskLevel === 'Hög' ? 'rgba(255,77,109,0.7)' : 'rgba(255,209,102,0.6)'
+          ),
+          borderRadius: 4
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          y: { beginAtZero: true, max: 3, ticks: { stepSize: 1, color: '#4a5568', font: { family: 'JetBrains Mono', size: 10 } }, grid: { color: '#1e2535' } },
+          x: { grid: { display: false }, ticks: { color: '#4a5568', font: { family: 'JetBrains Mono', size: 10 } } }
+        },
+        plugins: { legend: { display: false } }
+      }
+    });
+  }
+}
+
+function switchChart(type, el) {
+  currentChartType = type;
+  document.querySelectorAll('.chart-section .pill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  if (allResults.length) updateChart();
+}
+
+function filterResults(filter, el) {
+  currentFilter = filter;
+  document.querySelectorAll('#page-analyse .pill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  applyFilter(filter);
+}
+
+function applyFilter(filter) {
+  const container = document.getElementById('results-container');
+  const filtered = filter === 'alla' ? allResults : allResults.filter(s => {
+    const r = s.recommendation.toLowerCase();
+    return r === filter;
+  });
+
+  document.getElementById('result-count').textContent = filtered.length + ' bolag';
+
+  if (filtered.length === 0) {
+    container.innerHTML = `<div class="empty"><div class="empty-icon">🔍</div><div class="empty-text">Inga resultat för detta filter</div></div>`;
+    return;
+  }
+
+  container.innerHTML = `<div class="results-grid">${filtered.map((s, i) => cardHTML(s, i)).join('')}</div>`;
+}
+
+function cardHTML(s, i) {
+  const badge = s.recommendation === 'KÖP' ? 'badge-buy' : s.recommendation === 'SÄLJ' ? 'badge-sell' : 'badge-hold';
+  const conf = s.confidence || 75;
+  const inPortfolio = portfolio.some(p => p.name.toLowerCase() === s.name.toLowerCase());
+  const catalysts = (s.catalysts || []).map(c => `<span class="catalyst-tag">${c}</span>`).join('');
+
+  return `
+    <div class="result-card" style="animation-delay:${i * 0.07}s">
+      <div class="card-top">
+        <div>
+          <div class="stock-name">${s.name}</div>
+          <div class="stock-meta">${s.ticker || '—'} · Stockholmsbörsen</div>
+        </div>
+        <div class="badge ${badge}">${s.recommendation}</div>
+      </div>
+
+      <div class="confidence-row">
+        <span class="confidence-label">Konfidens</span>
+        <div class="confidence-bar"><div class="confidence-fill" style="width:${conf}%"></div></div>
+        <span class="confidence-val">${conf}%</span>
+      </div>
+
+      <div class="card-rationale">${s.rationale}</div>
+
+      ${catalysts ? `<div class="catalysts">${catalysts}</div>` : ''}
+
+      <div class="card-metrics">
+        <div class="metric">
+          <span class="metric-label">Riktkurs</span>
+          <span class="metric-val">${s.targetPrice || '—'}</span>
+        </div>
+        <div class="metric">
+          <span class="metric-label">Horisont</span>
+          <span class="metric-val">${s.timeHorizon || '—'}</span>
+        </div>
+        <div class="metric">
+          <span class="metric-label">Risk</span>
+          <span class="metric-val ${s.riskLevel === 'Hög' ? 'down' : s.riskLevel === 'Låg' ? 'up' : ''}">${s.riskLevel || '—'}</span>
+        </div>
+        <div class="metric">
+          <span class="metric-label">Uppsida</span>
+          <span class="metric-val up">${s.upside || '—'}</span>
+        </div>
+        <div class="metric">
+          <span class="metric-label">Källor</span>
+          <span class="metric-val" style="font-size:0.7rem;color:var(--muted2)">${(s.sources || []).slice(0, 2).join(', ') || '—'}</span>
+        </div>
+      </div>
+
+      <div class="card-actions">
+        <button class="card-btn ${inPortfolio ? 'added' : ''}" onclick='addToPortfolioFromCard(${JSON.stringify(s)}, this)'>
+          ${inPortfolio ? '✓ I portfölj' : '+ Portfölj'}
+        </button>
+        <button class="card-btn" onclick='addAlertFromCard(${JSON.stringify(s.name)})'>
+          🔔 Bevaka
+        </button>
+      </div>
+    </div>`;
+}
+
+// ========================
+// API CALLS
+// ========================
+async function getDailyTips() {
+  showLoading(true);
+  hideError();
+  const today = new Date().toLocaleDateString('sv-SE');
+  try {
+    const data = await callClaude(
+      `Analysera marknadsläget på Stockholmsbörsen idag (${today}). Ge mig de 5 mest intressanta aktierna för kortsiktig handel (dagar till veckor). Sök aktivt efter:
+1. Aktier med nyliga analytikerhöjningar eller riktkursökningar
+2. Bolag med kommande eller nyligen publicerade kvartalsrapporter
+3. Aktier med positiva nyhetsflöden (förvärv, kontrakt, ordervinster)
+4. Tekniska genombrott eller stöd-/motståndsnivåer
+5. Insiderköp eller institutionella inflöden
+
+Inkludera SPECIFIKA katalysatorer för varje aktie och ange konfidenspoäng (0-100) baserat på styrkan i dataunderlaget.`
+    );
+    renderResults(data.stocks);
+    checkAlertsForResults(data.stocks);
+  } catch(e) {
+    showError('Kunde inte hämta dagstips. ' + (e.message || 'Kontrollera din anslutning.'));
+  }
+  showLoading(false);
+}
+
+async function searchStock() {
+  const query = document.getElementById('search-input').value.trim();
+  if (!query) return;
+  showLoading(true);
+  hideError();
+  try {
+    const data = await callClaude(
+      `Gör en djupanalys av "${query}" på Stockholmsbörsen för kortsiktig handel. Sök efter:
+1. Senaste nyheter och pressreleaser
+2. Analytikernas konsensusrekommendation och riktkurser
+3. Senaste kvartalsrapporten och prognoser
+4. Insiderhandel senaste 3 månader
+5. Konkurrentjämförelse och branschtrend
+
+Ge en KÖP/BEHÅLL/SÄLJ-rekommendation med hög konfidens baserat på flera datapunkter. Ange konkreta katalysatorer och en tydlig tidshorisont.`
+    );
+    renderResults(data.stocks);
+    checkAlertsForResults(data.stocks);
+  } catch(e) {
+    showError(`Kunde inte analysera "${query}". ${e.message || 'Försök igen.'}`);
+  }
+  showLoading(false);
+}
+
+async function analysePortfolio() {
+  if (portfolio.length === 0) { showToast('Inga innehav i portföljen', 'error'); return; }
+  showPage('analyse');
+  showLoading(true);
+  hideError();
+  const names = portfolio.map(p => p.name).join(', ');
+  try {
+    const data = await callClaude(
+      `Analysera dessa aktier i min portfölj för kortsiktig handel: ${names}. Ge uppdaterade rekommendationer baserat på senaste nyheter och analytikerkonsensus. Fokusera på om jag bör behålla, öka eller minska positionerna.`
+    );
+    renderResults(data.stocks);
+  } catch(e) {
+    showError('Kunde inte analysera portföljen: ' + (e.message || ''));
+  }
+  showLoading(false);
+}
+
+// ========================
+// PORTFOLIO
+// ========================
+function addToPortfolioFromCard(stock, btn) {
+  if (portfolio.some(p => p.name.toLowerCase() === stock.name.toLowerCase())) {
+    showToast(stock.name + ' finns redan i portföljen');
+    return;
+  }
+  portfolio.push({
+    name: stock.name,
+    ticker: stock.ticker || '—',
+    qty: 100,
+    buyPrice: parseFloat((stock.targetPrice || '100 kr').replace(/[^0-9.]/g, '')) * 0.95 || 100,
+    recommendation: stock.recommendation
+  });
+  savePortfolio();
+  btn.textContent = '✓ I portfölj';
+  btn.classList.add('added');
+  showToast('✓ ' + stock.name + ' tillagd i portfölj', 'success');
+  updateStats();
+}
+
+function addHolding() {
+  const name = document.getElementById('p-name').value.trim();
+  const qty = parseInt(document.getElementById('p-qty').value);
+  const price = parseFloat(document.getElementById('p-price').value);
+  if (!name || !qty || !price) { showToast('Fyll i alla fält', 'error'); return; }
+  portfolio.push({ name, ticker: '—', qty, buyPrice: price, recommendation: '—' });
+  savePortfolio();
+  document.getElementById('p-name').value = '';
+  document.getElementById('p-qty').value = '';
+  document.getElementById('p-price').value = '';
+  showToast('✓ ' + name + ' tillagd', 'success');
+}
+
+function removeHolding(idx) {
+  portfolio.splice(idx, 1);
+  savePortfolio();
+}
+
+function savePortfolio() {
+  localStorage.setItem('portfolio', JSON.stringify(portfolio));
+  renderPortfolio();
+  updateStats();
+}
+
+function renderPortfolio() {
+  const total = portfolio.reduce((a, p) => a + p.qty * p.buyPrice, 0);
+  document.getElementById('p-total').textContent = total.toLocaleString('sv-SE') + ' kr';
+  document.getElementById('sidebar-portfolio-val').textContent = total ? total.toLocaleString('sv-SE') + ' kr' : '— kr';
+
+  if (portfolio.length === 0) {
+    document.getElementById('portfolio-empty').style.display = 'block';
+    document.getElementById('portfolio-table').style.display = 'none';
+    document.getElementById('p-chg').textContent = 'Inga innehav ännu';
+    document.getElementById('sidebar-portfolio-chg').textContent = 'Inga innehav';
+    document.getElementById('sidebar-portfolio-chg').style.color = 'var(--muted)';
+  } else {
+    document.getElementById('portfolio-empty').style.display = 'none';
+    document.getElementById('portfolio-table').style.display = 'table';
+    document.getElementById('p-chg').textContent = portfolio.length + ' innehav';
+
+    const body = document.getElementById('portfolio-body');
+    body.innerHTML = portfolio.map((p, i) => {
+      const val = p.qty * p.buyPrice;
+      return `
+        <tr>
+          <td><div class="p-name">${p.name}</div><div class="p-ticker">${p.ticker}</div></td>
+          <td class="p-mono">${p.qty}</td>
+          <td class="p-mono">${p.buyPrice.toFixed(2)} kr</td>
+          <td class="p-mono">${val.toLocaleString('sv-SE')} kr</td>
+          <td><span class="p-mono p-${p.recommendation === 'KÖP' ? 'up' : p.recommendation === 'SÄLJ' ? 'down' : ''}">${p.recommendation}</span></td>
+          <td><span class="badge ${p.recommendation === 'KÖP' ? 'badge-buy' : p.recommendation === 'SÄLJ' ? 'badge-sell' : 'badge-hold'}" style="font-size:0.58rem;padding:3px 9px">${p.recommendation}</span></td>
+          <td><button class="remove-btn" onclick="removeHolding(${i})">Ta bort</button></td>
+        </tr>`;
+    }).join('');
+    renderPortfolioChart();
+  }
+}
+
+function renderPortfolioChart() {
+  const ctx = document.getElementById('portfolioChart').getContext('2d');
+  if (portfolioChartInstance) portfolioChartInstance.destroy();
+  if (portfolio.length === 0) return;
+
+  const colors = ['#4fffb0','#7b61ff','#ff6b35','#ffd166','#ff4d6d','#06b6d4','#a78bfa'];
+
+  portfolioChartInstance = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: portfolio.map(p => p.name),
+      datasets: [{
+        data: portfolio.map(p => p.qty * p.buyPrice),
+        backgroundColor: colors.map(c => c + 'bb'),
+        borderColor: colors,
+        borderWidth: 1.5
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: {
+          labels: { color: '#8899bb', font: { family: 'JetBrains Mono', size: 11 } }
+        }
+      }
+    }
+  });
+}
+
+// ========================
+// ALERTS
+// ========================
+function addAlert() {
+  const name = document.getElementById('al-name').value.trim();
+  const type = document.getElementById('al-type').value;
+  const email = document.getElementById('al-email').value.trim();
+  if (!name) { showToast('Ange ett bolagsnamn', 'error'); return; }
+
+  alertsList.push({ name, type, email, active: true, id: Date.now() });
+  saveAlerts();
+  document.getElementById('al-name').value = '';
+  document.getElementById('al-email').value = '';
+  showToast('✓ Bevakning skapad för ' + name, 'success');
+}
+
+function addAlertFromCard(name) {
+  if (alertsList.some(a => a.name.toLowerCase() === name.toLowerCase())) {
+    showToast(name + ' bevakas redan');
+    return;
+  }
+  alertsList.push({ name, type: 'ALLA', email: '', active: true, id: Date.now() });
+  saveAlerts();
+  showToast('🔔 Bevakning skapad för ' + name, 'success');
+}
+
+function toggleAlert(id) {
+  const a = alertsList.find(a => a.id === id);
+  if (a) a.active = !a.active;
+  saveAlerts();
+}
+
+function removeAlert(id) {
+  alertsList = alertsList.filter(a => a.id !== id);
+  saveAlerts();
+}
+
+function saveAlerts() {
+  localStorage.setItem('alerts', JSON.stringify(alertsList));
+  renderAlerts();
+}
+
+function renderAlerts() {
+  const list = document.getElementById('alerts-list');
+  const active = alertsList.filter(a => a.active).length;
+  document.getElementById('alerts-count').textContent = active + ' aktiva';
+
+  if (alertsList.length === 0) {
+    list.innerHTML = `<div class="empty" style="padding:40px 0"><div class="empty-icon">🔔</div><div class="empty-text">Inga bevakningar satta.<br>Skapa en bevakning nedan.</div></div>`;
+    return;
+  }
+
+  const typeLabels = { KÖP: 'Köpsignal', SÄLJ: 'Säljsignal', ALLA: 'Alla signaler', RAPPORT: 'Rapport' };
+  list.innerHTML = alertsList.map(a => `
+    <div class="alert-item">
+      <div class="alert-info">
+        <div class="alert-title">${a.name}</div>
+        <div class="alert-desc">${typeLabels[a.type] || a.type} ${a.email ? '· 📧 ' + a.email : '· Ingen e-post'}</div>
+      </div>
+      <div class="alert-status ${a.active ? 'on' : 'off'}">${a.active ? 'Aktiv' : 'Pausad'}</div>
+      <button class="toggle-btn ${a.active ? 'on' : ''}" onclick="toggleAlert(${a.id})">${a.active ? 'Pausa' : 'Aktivera'}</button>
+      <button class="remove-btn" onclick="removeAlert(${a.id})">Ta bort</button>
+    </div>`).join('');
+}
+
+function checkAlertsForResults(stocks) {
+  const triggered = alertsList.filter(a => a.active && stocks.some(s =>
+    s.name.toLowerCase().includes(a.name.toLowerCase()) &&
+    (a.type === 'ALLA' || s.recommendation === a.type)
+  ));
+
+  triggered.forEach(a => {
+    const match = stocks.find(s => s.name.toLowerCase().includes(a.name.toLowerCase()));
+    showToast(`🔔 ${a.name}: ${match.recommendation} signal!`, 'success');
+    if (a.email) {
+      console.log(`[ALERT] Email would be sent to ${a.email}: ${a.name} got ${match.recommendation}`);
+    }
+  });
+}
+</script>
+</body>
+</html>
